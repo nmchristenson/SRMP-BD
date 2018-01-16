@@ -1,0 +1,98 @@
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+
+# -----------------------------------------------------------------------------------------------------------------
+# -------------------- read in the text files (read in column names before the text file) -------------------------
+# -----------------------------------------------------------------------------------------------------------------
+# Our data
+df = pd.read_csv("/Users/nina/Dropbox/SRMP_shared/IRTF_SpeX (SRMP) - SpeX_Jul4.tsv", sep="\t", comment="#", header=0)
+df1 = pd.read_csv("/Users/nina/Dropbox/SRMP_shared/IRTF_SpeX (SRMP) - Feb28.tsv", sep="\t", comment="#", header=0)
+df2 = pd.read_csv("/Users/nina/Dropbox/SRMP_shared/IRTF_SpeX (SRMP) - Dec_1224.tsv", sep="\t", comment="#", header=0)
+
+dfmar05 = pd.read_csv("/Users/nina/Dropbox/SRMP_shared/IRTF_SpeX (SRMP) - March 05.tsv", sep="\t", comment="#", header=0)
+dfmar06 = pd.read_csv("/Users/nina/Dropbox/SRMP_shared/IRTF_SpeX (SRMP) - March 06.tsv", sep="\t", comment="#", header=0)
+# Comparisons
+column_names_BDKP3A = ["nmn", "Lgn", "sptn", "Total Proper Motion", "J", "Jerr", "H", "Herr", "K", "Kerr", "w1", "w1err",
+                      "w2", "w2err", "w3", "w3err", "w4", "w4err"]
+dfBDKP3A = pd.read_csv("/Users/nina/Dropbox/SRMP_shared/BDKP3A.txt", sep="\s+", comment="#", names=column_names_BDKP3A,
+                       header=None)
+# dfBDKP3B = pd.read_csv("/Users/nina/Dropbox/SRMP_shared/BDKP3B.txt", sep="\t", comment="#")  # not using now
+column_namesLSPMWISE = ["name", "Total Proper Motion", "w1", "w1err", "w2", "w2err", "w3", "w3err", "w4", "w4err",
+                         "J", "Jerr", "H", "Herr", "K", "Kerr"]
+dfLSPMWISE = pd.read_csv("/Users/nina/Dropbox/SRMP_shared/LSPM-WISE-Table.txt", sep="\t", comment="#",
+                         names=column_namesLSPMWISE)
+
+# -----------------------------------------------------------------------------------------------------------------
+# ------------------------------------Combining our data into one dataframe----------------------------------------
+# -----------------------------------------------------------------------------------------------------------------
+# creating 3 new data frames with only the values you need from the old df's(apparent magnitudes, total proper motion)
+df_rpm = df[['NAME', 'J', "J_err", 'H', "H_err", "K", "K_err", "W1", "W1_err", 'Total Proper Motion']]
+df_rpm1 = df1[['NAME', 'J', "J_err", 'H', "H_err", "K", "K_err", "W1", "W1_err", 'Total PM b']]
+df_rpm2 = df2[['NAME', 'J', "J_err", 'H', "H_err", "K", "K_err", "W1", "W1_err", 'Total Proper Motion']]
+
+dfmar05 = dfmar05[['NAME', 'J', 'J_err', 'H', 'H_err', 'K', 'K_err', 'W1', 'W1_err', 'Total Proper Motion']]
+dfmar06 = dfmar06[['NAME', 'J', 'J_err', 'H', 'H_err', 'K', 'K_err', 'W1', 'W1_err', 'Total Proper Motion']]
+
+# change column names to match each other
+df_rpm1.columns = ['NAME', 'J', "J_err", 'H', "H_err", "K", "K_err", "W1", "W1_err", "Total Proper Motion"]
+df4 = pd.read_csv('/Users/nina/Dropbox/SRMP_shared/LSPM2.txt', sep="\s+", comment='#', header=2,
+                  names=['RA', 'DEC', 'pm', 'pmRA','pmDEC','J', 'K'])
+# use concatinate function to stack new data frames
+frames = [df_rpm, df_rpm1, df_rpm2]
+result = pd.concat(frames, ignore_index=True)
+
+# adding RPM and J-K color columns to our data
+result["RPM_J"] = result["J"]+5*np.log10(result["Total Proper Motion"]/1000)+5
+result["J-K color"] = result["J"]-result["K"]
+
+dfmar05["RPM_J"] = dfmar05["J"]+5*np.log10(dfmar05["Total Proper Motion"]/1000)+5
+dfmar05["J-K color"] = dfmar05["J"]-dfmar05["K"]
+
+dfmar06["RPM_J"] = dfmar06["J"]+5*np.log10(dfmar06["Total Proper Motion"]/1000)+5
+dfmar06["J-K color"] = dfmar06["J"]-dfmar06["K"]
+
+# dropping last 4 rows of dfBDKP3A because their TPM = 0, dropping one row of dfLSPMWISE because its >0
+dfBDKP3A = dfBDKP3A.drop(dfBDKP3A.index[[1199,1200,1201, 1202]])
+dfLSPMWISE = dfLSPMWISE.drop(dfLSPMWISE.index[[30191]])
+
+# dropping values in TPM that are negative
+x5 = dfLSPMWISE [(dfLSPMWISE["Total Proper Motion"] < 0)]
+
+# dropping j-k = 0 in df BDKP3A
+dfBDKP3A = dfBDKP3A[dfBDKP3A.J !=-100.00]
+dfBDKP3A = dfBDKP3A[dfBDKP3A.K !=-100.00]
+dfBDKP3A = dfBDKP3A[dfBDKP3A.RPM_J !=-100.00]
+dfBDKP3A = dfBDKP3A[dfBDKP3A.RPM_J != 0]
+
+
+# dropping all values of J and K that are -100
+x3 = dfBDKP3A [(dfBDKP3A['J'] != -100)]
+x4 = dfBDKP3A [(dfBDKP3A['K'] != -100)]
+
+# creating rpm and j-k columns for comparison data
+dfBDKP3A["RPM_J"] = dfBDKP3A["J"]+5*np.log10(dfBDKP3A["Total Proper Motion"])+5
+dfBDKP3A["J-K color"] = dfBDKP3A["J"]-dfBDKP3A["K"]
+
+dfLSPMWISE["RPM_J"] = dfLSPMWISE["J"]+5*np.log10(dfLSPMWISE["Total Proper Motion"])+5
+dfLSPMWISE["J-K color"] = dfLSPMWISE["J"]-dfLSPMWISE["K"]
+
+# creating plots for our data
+our_data = plt.scatter(result["J-K color"], result["RPM_J"], c="red", zorder=2)
+# creating plots for comparison data (dfBDKP3A AND dfLSPMWISE)
+BDKP3A = plt.scatter(dfBDKP3A["J-K color"], dfBDKP3A["RPM_J"], c= "blue", s= 1)
+LSPMWISE = plt.scatter(dfLSPMWISE["J-K color"], dfLSPMWISE["RPM_J"], c= "orange", s=1)
+plt.scatter(dfmar05["J-K color"], dfmar05["RPM_J"], c="red")
+plt.scatter(dfmar06["J-K color"], dfmar06["RPM_J"], c="red")
+plt.ylabel("Reduced Proper Motion (J)")
+plt.xlabel("J-K color")
+plt.ylim([25, 0])
+plt.title("RPM_J diagram")
+plt.legend([our_data, BDKP3A,LSPMWISE], ["Our data", "BDKP3A", "LSPMWISE"])
+plt.show()
+#plt.xlim([0, 3])
+
+plt.savefig("final RPM_J diagram")
+
+
+
