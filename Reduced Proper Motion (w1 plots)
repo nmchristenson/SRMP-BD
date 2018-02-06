@@ -10,6 +10,7 @@ df = pd.read_csv("/Users/nina/Dropbox/SRMP_shared/IRTF_SpeX (SRMP) - SpeX_Jul4.t
 df1 = pd.read_csv("/Users/nina/Dropbox/SRMP_shared/IRTF_SpeX (SRMP) - Feb28.tsv", sep="\t", comment="#", header=0)
 df2 = pd.read_csv("/Users/nina/Dropbox/SRMP_shared/IRTF_SpeX (SRMP) - Dec_1224.tsv", sep="\t", comment="#", header=0)
 
+dfmar04 = pd.read_csv("/Users/nina/Dropbox/SRMP_shared/IRTF_SpeX (SRMP) - March04.tsv", sep="\t", comment="#", header=0)
 dfmar05 = pd.read_csv("/Users/nina/Dropbox/SRMP_shared/IRTF_SpeX (SRMP) - March 05.tsv", sep="\t", comment="#", header=0)
 dfmar06 = pd.read_csv("/Users/nina/Dropbox/SRMP_shared/IRTF_SpeX (SRMP) - March 06.tsv", sep="\t", comment="#", header=0)
 # Comparisons
@@ -31,19 +32,38 @@ df_rpm = df[['NAME', 'J', "J_err", 'H', "H_err", "K", "K_err", "W1", "W1_err", '
 df_rpm1 = df1[['NAME', 'J', "J_err", 'H', "H_err", "K", "K_err", "W1", "W1_err", 'Total PM b']]
 df_rpm2 = df2[['NAME', 'J', "J_err", 'H', "H_err", "K", "K_err", "W1", "W1_err", 'Total Proper Motion']]
 
+dfmar04 = dfmar04[['NAME', 'J', 'J_err', 'H', 'H_err', 'K', 'K_err', 'W1', 'W1_err', 'Proper Motion b']]
 dfmar05 = dfmar05[['NAME', 'J', 'J_err', 'H', 'H_err', 'K', 'K_err', 'W1', 'W1_err', 'Total Proper Motion']]
 dfmar06 = dfmar06[['NAME', 'J', 'J_err', 'H', 'H_err', 'K', 'K_err', 'W1', 'W1_err', 'Total Proper Motion']]
+
+
 # change column names to match each other
 df_rpm1.columns = ['NAME', 'J', "J_err", 'H', "H_err", "K", "K_err", "W1", "W1_err", "Total Proper Motion"]
 df4 = pd.read_csv('/Users/nina/Dropbox/SRMP_shared/LSPM2.txt', sep="\s+", comment='#', header=2,
                   names=['RA', 'DEC', 'pm', 'pmRA','pmDEC','J', 'K'])
+dfmar04.columns = ['NAME', 'J', "J_err", 'H', "H_err", "K", "K_err", "W1", "W1_err", "Total Proper Motion"]
+
+
+
 # use concatinate function to stack new data frames
+
 frames = [df_rpm, df_rpm1, df_rpm2]
 result = pd.concat(frames, ignore_index=True)
+
+frames = [dfmar04, dfmar05, dfmar06]
+mardata = pd.concat(frames, ignore_index=True)
+
+frames = [mardata, result]
+alldata = pd.concat(frames, ignore_index=True)
+
+
 
 # adding RPM and J-K color columns to our data
 result["RPM_W1"] = result["W1"]+5*np.log10(result["Total Proper Motion"]/1000)+5
 result["J-K color"] = result["J"]-result["K"]
+
+dfmar04["RPM_W1"] = dfmar04["W1"]+5*np.log10(dfmar04["Total Proper Motion"]/1000)+5
+dfmar04["J-K color"] = dfmar04["J"]-dfmar04["K"]
 
 dfmar05["RPM_W1"] = dfmar05["W1"]+5*np.log10(dfmar05["Total Proper Motion"]/1000)+5
 dfmar05["J-K color"] = dfmar05["J"]-dfmar05["K"]
@@ -51,14 +71,32 @@ dfmar05["J-K color"] = dfmar05["J"]-dfmar05["K"]
 dfmar06["RPM_W1"] = dfmar06["W1"]+5*np.log10(dfmar06["Total Proper Motion"]/1000)+5
 dfmar06["J-K color"] = dfmar06["J"]-dfmar06["K"]
 
+mardata["RPM_W1"] = mardata["W1"]+5*np.log10(mardata["Total Proper Motion"]/1000)+5
+mardata["J-K color"] = mardata["J"]-mardata["K"]
+
+alldata["RPM_W1"] = alldata["W1"]+5*np.log10(alldata["Total Proper Motion"]/1000)+5
+alldata["J-K color"] = alldata["J"]-alldata["K"]
+
+
+# finding outliers in all of our data
+
+outliers = alldata[(alldata["J-K color"] > 2.2)]
+outliers1 = alldata[(alldata["RPM_W1"]> 19)]
+
+
+# concatinating the outlier frames
+
+frames = [outliers, outliers1]
+alloutliers = pd.concat(frames, ignore_index=True)
+
 # dropping last 4 rows of dfBDKP3A because their TPM = 0
 dfBDKP3A = dfBDKP3A.drop(dfBDKP3A.index[[1199,1200,1201, 1202]])
 
 # dropping all values of J, K, and w1 that are -100
 # x3 = dfBDKP3A[(dfBDKP3A['J'] != -100)]
 # x4 = dfBDKP3A[(dfBDKP3A['K'] != -100)]
-dfBDKP3A_w1 = dfBDKP3A[(dfBDKP3A['K'] > -100) & (dfBDKP3A['w1'] > -100)]
 
+dfBDKP3A_w1 = dfBDKP3A[(dfBDKP3A['K'] > -100) & (dfBDKP3A['w1'] > -100)]
 
 
 # adding RPM and J-K color columns to comparison data
@@ -75,18 +113,21 @@ x7 = dfLSPMWISE[(dfLSPMWISE["Total Proper Motion"]) < 0]
 dfLSPMWISE = dfLSPMWISE.drop(dfLSPMWISE.index[[30191]])
 
 # plot for w1
-plt.scatter(result["J-K color"], result["RPM_W1"], c="red", zorder=2, label="our data")
-plt.scatter(dfLSPMWISE["J-K color"], dfLSPMWISE["RPM_W1"], c="orange", s=1, label="LSPMWISE")
-plt.scatter(dfBDKP3A["J-K color"], dfBDKP3A["RPM_W1"], c="blue", s=1, label="BDKP3A")
-plt.scatter(dfmar05["J-K color"], dfmar05["RPM_W1"], c="red", label="mar05 data")
-plt.scatter(dfmar06["J-K color"], dfmar06["RPM_W1"], c="red", label="mar06 data")
-plt.ylabel("Reduced Proper Motion (w1)")
+our_data = plt.scatter(result["J-K color"], result["RPM_W1"], c="red", zorder=2, label="our data")
+LSPMWISE = plt.scatter(dfLSPMWISE["J-K color"], dfLSPMWISE["RPM_W1"], c="orange", s=1, label="LSPMWISE")
+BDKP3A = plt.scatter(dfBDKP3A["J-K color"], dfBDKP3A["RPM_W1"], c="blue", s=1, label="BDKP3A")
+# plt.scatter(dfmar04["J-K color"], dfmar04["RPM_W1"], c="red")
+# plt.scatter(dfmar05["J-K color"], dfmar05["RPM_W1"], c="red")
+# plt.scatter(dfmar06["J-K color"], dfmar06["RPM_W1"], c="red")
+plt.scatter(mardata["J-K color"], mardata["RPM_W1"], c="red")
+the_outliers = plt.scatter(alloutliers["J-K color"], alloutliers["RPM_W1"], c="purple")
+plt.ylabel("Reduced Proper Motion (J)")
 plt.xlabel("J-K color")
-plt.ylim([25,0])
+plt.ylim([25, 0])
 plt.title("RPM_W1 diagram")
-ax = plt.subplot(111)
-ax.legend()
+plt.legend([our_data, BDKP3A,LSPMWISE, the_outliers], ["Our data", "BDKP3A", "LSPMWISE", 'Outliers'])
 plt.show()
 plt.savefig("final RPM_W1 diagram")
 
+# TODO; figure out why there is one red point in my w1 outliers
 
