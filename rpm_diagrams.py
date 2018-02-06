@@ -71,8 +71,8 @@ dfmar06["J-K color"] = dfmar06["J"]-dfmar06["K"]
 dfBDKP3A = dfBDKP3A.drop(dfBDKP3A.index[[1199,1200,1201, 1202]])
 dfmar05 = dfmar05.drop(dfmar05.index[[5,6,7]])
 
-
-
+dfBDKP3A["RPM_J"] = dfBDKP3A["J"] + 5 * np.log10(dfBDKP3A["Total Proper Motion"])+5
+dfBDKP3A["J-K color"] = dfBDKP3A["J"]-dfBDKP3A["K"]
 
 dfBDKP3A["RPM_W1"] = dfBDKP3A["w1"] + 5 * np.log10(dfBDKP3A["Total Proper Motion"])+5
 dfBDKP3A["J-K color"] = dfBDKP3A["J"]-dfBDKP3A["K"]
